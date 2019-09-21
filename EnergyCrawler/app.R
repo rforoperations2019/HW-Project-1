@@ -4,6 +4,9 @@ library(plotly)
 library(ggplot2)
 library(DT)
 
+# Load Chicago energy data
+energyData <- read.csv("Chicago_Energy.csv")
+
 ui <- dashboardPage(
     dashboardHeader(title = "Basic dashboard"),
     ## Sidebar content
