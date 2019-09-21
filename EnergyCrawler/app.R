@@ -3,41 +3,48 @@ library(shinydashboard)
 library(plotly)
 library(ggplot2)
 library(DT)
+library(tidyr)
+
+# Increase maximum upload file size to 100Mb
+options(shiny.maxRequestSize = 100*1024^2)
 
 # Load Chicago energy data
-energyData <- read.csv("Chicago_Energy.csv")
+#energyData <- read.csv("Chicago_Energy.csv")
+#energyData<- dplyr::group_by(energyData, COMMUNITY.AREA.NAME)
+
+#energySummary <- summary(energyData)
 
 ui <- dashboardPage(
     dashboardHeader(title = "Basic dashboard"),
     ## Sidebar content
     dashboardSidebar(
         sidebarMenu(
-            menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
+            fileInput("file", "CSV file")
+            ,actionButton("submit", label = "Submit")
+            ,sliderInput("slider", "Number of observations:", 1, 100, 50)
+            ,menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
             ,menuItem("Widgets", tabName = "widgets", icon = icon("th"))
             ,menuItem("Data", tabName = "data", icon = icon("table"))
+            #,uiOutput("field_chooser_ui")
         )
-    ),
+    )
     ## Body content
-    dashboardBody(
+    ,dashboardBody(
         fluidRow(
             # A static valueBox
-            valueBox(10 * 2, "New Orders", icon = icon("credit-card")),
+            valueBox(10 * 2, "New Orders", icon = icon("credit-card"))
             
             # Dynamic valueBoxes
-            valueBoxOutput("progressBox"),
+            ,valueBoxOutput("progressBox")
             
-            valueBoxOutput("approvalBox")
+            ,valueBoxOutput("approvalBox")
+        
         ),
         tabItems(
             # First tab content
             tabItem(tabName = "dashboard",
                     fluidRow(
-                        box(plotlyOutput("plot1", height = 250)),
-                        
-                        box(
-                            title = "Controls",
-                            sliderInput("slider", "Number of observations:", 1, 100, 50)
-                        )
+                        box(plotlyOutput("plot1", height = 250))
                     )
             ),
             
@@ -46,6 +53,7 @@ ui <- dashboardPage(
                     h2("Widgets tab content")
             ),
             
+            # Third tab content
             tabItem(tabName = "data"
                     ,h2("Underlying Data")
                     ,fluidRow(
