@@ -106,7 +106,7 @@ ui <- dashboardPage(
                                          )
                                          , fluidRow(plotlyOutput("plot2"))
                                          )
-                               ,tabPanel(title= "Month Over Month Trends"
+                               ,tabPanel(title= "Savings"
                                          ,splitLayout(
                                              selectInput(inputId = "yplot3"
                                                          ,label = "Y-axis:"
