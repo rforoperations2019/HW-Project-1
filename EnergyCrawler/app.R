@@ -6,14 +6,48 @@ library(DT)
 library(tidyr)
 library(ECharts2Shiny)
 
-# Increase maximum upload file size to 100Mb
-options(shiny.maxRequestSize = 100*1024^2)
+# Load Data for Shiny Visualization
+#file.directory <- "C:/Users/hmdsa/Documents/GitHub/hw1_asanda/Chicago_Energy.csv"
+CEnergy <- read.csv("Chicago_Energy.csv")
+#View(CEnergy)
 
-# Load Chicago energy data
-#energyData <- read.csv("Chicago_Energy.csv")
-#energyData<- dplyr::group_by(energyData, COMMUNITY.AREA.NAME)
+# Clean data by removing incomplete reords
+na.FindAndRemove <- function(mydata)
+{
+    # We need to find the number of na's per row. Write code that would loop through each column and find if the number of NAs is equal to the number # of rows and then remove any column with all NA's
+    for (i in NCOL(mydata)) 
+    {
+        if (nrow(mydata[i]) == sum(sapply(mydata[i], is.na))) 
+        {
+            mydata <- mydata[-i]
+        }
+    }
+    mydata <- na.omit(mydata)
+    return(mydata)
+}
+CEnergy <- na.FindAndRemove(CEnergy)
+#View(CEnergy)
 
-#energySummary <- summary(energyData)
+#Pull Column names as list to input in dashboard
+columns <- as.data.frame(colnames(CEnergy))
+#View(columns)
+
+columns.list <- split(columns, seq(nrow(columns)), rownames(columns))
+
+
+column.names <- c("COMMUNITY.AREA.NAME", "CENSUS.BLOCK", "BUILDING.TYPE", "BUILDING_SUBTYPE", "KWH.JANUARY.2010", "KWH.FEBRUARY.2010", "KWH.MARCH.2010", "KWH.APRIL.2010", "KWH.MAY.2010", "KWH.JUNE.2010", "KWH.JULY.2010", "KWH.AUGUST.2010",
+                  "KWH.SEPTEMBER.2010", "KWH.OCTOBER.2010", "KWH.NOVEMBER.2010", "KWH.DECEMBER.2010", "TOTAL.KWH", "ELECTRICITY.ACCOUNTS", "ZERO.KWH.ACCOUNTS", "THERM.JANUARY.2010", "THERM.FEBRUARY.2010", "THERM.MARCH.2010", "THERM.APRIL.2010",
+                  "THERM.MAY.2010", "THERM.JUNE.2010", "THERM.JULY.2010", "THERM.AUGUST.2010", "THERM.SEPTEMBER.2010", "THERM.OCTOBER.2010", "THERM.NOVEMBER.2010", "THERM.DECEMBER.2010", "TOTAL.THERMS", "GAS.ACCOUNTS", "KWH.TOTAL.SQFT", "THERMS.TOTAL.SQFT",
+                  "KWH.MEAN.2010", "KWH.STANDARD.DEVIATION.2010", "KWH.MINIMUM.2010", "KWH.1ST.QUARTILE.2010", "KWH.2ND.QUARTILE.2010", "KWH.3RD.QUARTILE.2010", "KWH.MAXIMUM.2010", "KWH.SQFT.MEAN.2010", "KWH.SQFT.STANDARD.DEVIATION.2010", "KWH.SQFT.MINIMUM.2010",
+                  "KWH.SQFT.1ST.QUARTILE.2010", "KWH.SQFT.2ND.QUARTILE.2010", "KWH.SQFT.3RD.QUARTILE.2010", "KWH.SQFT.MAXIMUM.2010", "THERM.MEAN.2010", "THERM.STANDARD.DEVIATION.2010", "THERM.MINIMUM.2010", "THERM.1ST.QUARTILE.2010", "THERM.2ND.QUARTILE.2010",
+                  "THERM.3RD.QUARTILE.2010", "THERM.MAXIMUM.2010", "THERMS.SQFT.MEAN.2010", "THERMS.SQFT.STANDARD.DEVIATION.2010", "THERMS.SQFT.MINIMUM.2010", "THERMS.SQFT.1ST.QUARTILE.2010", "THERMS.SQFT.2ND.QUARTILE.2010", "THERMS.SQFT.3RD.QUARTILE.2010",
+                  "THERMS.SQFT.MAXIMUM.2010", "TOTAL.POPULATION", "TOTAL.UNITS", "AVERAGE.STORIES", "AVERAGE.BUILDING.AGE", "AVERAGE.HOUSESIZE", "OCCUPIED.UNITS", "OCCUPIED.UNITS.PERCENTAGE", "RENTER.OCCUPIED.HOUSING.UNITS", "RENTER.OCCUPIED.HOUSING.PERCENTAGE", "OCCUPIED.HOUSING.UNITS")
+column.names <- as(column.names, "list")
+
+
+# Increase maximum upload file size to 1 GB
+options(shiny.maxRequestSize = 1000*1024^2)
+
 
 ui <- dashboardPage(
     dashboardHeader(title = "Basic dashboard")
@@ -33,14 +67,36 @@ ui <- dashboardPage(
     ,dashboardBody(
         tabItems(
             tabItem(tabName = "dashboard"
-        ,fluidRow(
-            tabBox(width = 500, height = 500
-            ,tabPanel(title= "Energy Overview", plotlyOutput("plot1"))
-            ,tabPanel(title= "Month Over Month Trends", plotlyOutput("plot2"))
-            ,tabPanel(title= "Savings", plotlyOutput("plot3"))
-            )
-            )
-        )
+                    ,fluidRow(
+                        tabBox(width = 500, height = 500
+                               ,tabPanel(title= "Energy Overview"
+                                         ,selectInput(inputId = "yplot1", 
+                                                      label = "Y-axis:",
+                                                      choices = column.names,
+                                                      selected = "KWH.JANUARY.2010")
+                                         , plotlyOutput("plot1"))
+                               ,tabPanel(title= "Month Over Month Trends", plotlyOutput("plot2"))
+                               ,tabPanel(title= "Savings", plotlyOutput("plot3"))
+                               )
+                        # Select variable for y-axis ----------------------------------
+                        ,selectInput(inputId = "y", 
+                                    label = "Y-axis:",
+                                    choices = column.names,
+                                    selected = "KWH.JANUARY.2010"
+                                    )
+                        # Select variable for x-axis ----------------------------------
+                        ,selectInput(inputId = "x", 
+                                    label = "X-axis:",
+                                    choices = column.names,
+                                    selected = "COMMUNITY.AREA.NAME"
+                                    )
+                        ,selectInput(inputId = "z", 
+                                    label = "Color by",
+                                    choices = column.names,
+                                    selected = "BUILDING.TYPE"
+                                    )
+                        )
+                    )
         , tabItem(tabName = "widgets"
                   ,fluidRow(
                       #column(6,
@@ -51,13 +107,14 @@ ui <- dashboardPage(
                       # Dynamic valueBoxes
                       ,valueBoxOutput("progressBox")
                       ,valueBoxOutput("approvalBox")
-                      ,    # We MUST load the ECharts javascript library in advance
-                      loadEChartsLibrary(),
-                      tags$div(id="test", style="width:50%;height:400px;"),
-                      deliverChart(div_id = "test")
+                      )
+                  ,fluidRow(align = "center"
+                            # We MUST load the ECharts javascript library in advance
+                            ,loadEChartsLibrary()
+                            ,tags$div(id="test", style="width:50%;height:400px;")
+                            ,deliverChart(div_id = "test")
+                            )
                   )
-                  #)
-                )
         
         , tabItem(tabName = "data",
                   # Show data table ---------------------------------------------
@@ -117,7 +174,7 @@ server <- function(input, output) {
     })
     
     # Call functions from ECharts2Shiny to render charts
-    renderGauge(div_id = "test",rate = 99, gauge_name = "Finish Rate")
+    renderGauge(div_id = "test",rate = 99, gauge_name = "Finish Rate", animation = T, show.tools = F)
     
     # Print data table if checked -------------------------------------
     output$energytable <- DT::renderDataTable(
