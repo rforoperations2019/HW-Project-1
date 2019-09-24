@@ -68,33 +68,63 @@ ui <- dashboardPage(
         tabItems(
             tabItem(tabName = "dashboard"
                     ,fluidRow(
-                        tabBox(width = 500, height = 500
+                        tabBox(width = 450, height = 500
+                               ## Figure out how to make options drop down below the chart
                                ,tabPanel(title= "Energy Overview"
-                                         ,selectInput(inputId = "yplot1", 
-                                                      label = "Y-axis:",
-                                                      choices = column.names,
-                                                      selected = "KWH.JANUARY.2010")
-                                         , plotlyOutput("plot1"))
-                               ,tabPanel(title= "Month Over Month Trends", plotlyOutput("plot2"))
-                               ,tabPanel(title= "Savings", plotlyOutput("plot3"))
+                                         ,splitLayout(
+                                             selectInput(inputId = "yplot1"
+                                                         ,label = "Y-axis:"
+                                                         ,choices = column.names
+                                                         ,selected = "KWH.JANUARY.2010")
+                                             ,selectInput(inputId = "xplot1"
+                                                          ,label = "X-axis:"
+                                                          ,choices = column.names
+                                                          ,selected = "COMMUNITY.AREA.NAME"
+                                                          )
+                                             ,selectInput(inputId = "zplot1"
+                                                          ,label = "Color by"
+                                                          ,choices = column.names
+                                                          ,selected = "BUILDING.TYPE")
+                                             )
+                                         , fluidRow(plotlyOutput("plot1"))
+                                         )
+                               ,tabPanel(title= "Month Over Month Trends"
+                                         ,splitLayout(
+                                             selectInput(inputId = "yplot2"
+                                                         ,label = "Y-axis:"
+                                                         ,choices = column.names
+                                                         ,selected = "KWH.JANUARY.2010")
+                                             ,selectInput(inputId = "xplot2"
+                                                          ,label = "X-axis:"
+                                                          ,choices = column.names
+                                                          ,selected = "COMMUNITY.AREA.NAME"
+                                             )
+                                             ,selectInput(inputId = "zplot2"
+                                                          ,label = "Color by"
+                                                          ,choices = column.names
+                                                          ,selected = "BUILDING.TYPE")
+                                         )
+                                         , fluidRow(plotlyOutput("plot2"))
+                                         )
+                               ,tabPanel(title= "Month Over Month Trends"
+                                         ,splitLayout(
+                                             selectInput(inputId = "yplot3"
+                                                         ,label = "Y-axis:"
+                                                         ,choices = column.names
+                                                         ,selected = "KWH.JANUARY.2010")
+                                             ,selectInput(inputId = "xplot3"
+                                                          ,label = "X-axis:"
+                                                          ,choices = column.names
+                                                          ,selected = "COMMUNITY.AREA.NAME"
+                                             )
+                                             ,selectInput(inputId = "zplot3"
+                                                          ,label = "Color by"
+                                                          ,choices = column.names
+                                                          ,selected = "BUILDING.TYPE")
+                                         )
+                                         , fluidRow(plotlyOutput("plot3"))
                                )
-                        # Select variable for y-axis ----------------------------------
-                        ,selectInput(inputId = "y", 
-                                    label = "Y-axis:",
-                                    choices = column.names,
-                                    selected = "KWH.JANUARY.2010"
-                                    )
-                        # Select variable for x-axis ----------------------------------
-                        ,selectInput(inputId = "x", 
-                                    label = "X-axis:",
-                                    choices = column.names,
-                                    selected = "COMMUNITY.AREA.NAME"
-                                    )
-                        ,selectInput(inputId = "z", 
-                                    label = "Color by",
-                                    choices = column.names,
-                                    selected = "BUILDING.TYPE"
-                                    )
+                               )
                         )
                     )
         , tabItem(tabName = "widgets"
