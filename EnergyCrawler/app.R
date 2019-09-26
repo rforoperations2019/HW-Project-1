@@ -204,7 +204,7 @@ server <- function(input, output) {
     })
     
     # Call functions from ECharts2Shiny to render charts
-    renderGauge(div_id = "test",rate = 99, gauge_name = "Finish Rate", animation = T, show.tools = F)
+    renderGauge(div_id = "test",rate = 99, gauge_name = "Energy Usage Intensity", animation = T, show.tools = F)
     
     # Print data table if checked -------------------------------------
     output$energytable <- DT::renderDataTable(
