@@ -50,13 +50,17 @@ options(shiny.maxRequestSize = 1000*1024^2)
 
 
 ui <- dashboardPage(
-    dashboardHeader(title = "Basic dashboard")
+    dashboardHeader(title = "Energy Crawler")
     ## Sidebar content
     ,dashboardSidebar(
         sidebarMenu(
             fileInput("file", "CSV file")
             ,actionButton("submit", label = "Submit")
-            ,sliderInput("slider", "Number of observations:", 1, 100, 50)
+            # Select sample size ----------------------------------------------------
+            ,numericInput(inputId = "n_samp", 
+                         label = "Sample size:", 
+                         min = 1, max = nrow(CEnergy), 
+                         value = 1)
             ,menuItem("Widgets", tabName = "widgets", icon = icon("th"))
             ,menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
             ,menuItem("Data", tabName = "data", icon = icon("table"))
@@ -69,8 +73,8 @@ ui <- dashboardPage(
             tabItem(tabName = "dashboard"
                     ,fluidRow(
                         tabBox(width = 450, height = 500
-                               ## Figure out how to make options drop down below the chart
                                ,tabPanel(title= "Energy Overview"
+                                         ,tags$head(tags$style(".selectize-dropdown {position: static}"))
                                          ,splitLayout(
                                              selectInput(inputId = "yplot1"
                                                          ,label = "Y-axis:"
@@ -89,6 +93,7 @@ ui <- dashboardPage(
                                          , fluidRow(plotlyOutput("plot1"))
                                          )
                                ,tabPanel(title= "Month Over Month Trends"
+                                         ,tags$head(tags$style(".selectize-dropdown {position: static}"))
                                          ,splitLayout(
                                              selectInput(inputId = "yplot2"
                                                          ,label = "Y-axis:"
@@ -107,6 +112,7 @@ ui <- dashboardPage(
                                          , fluidRow(plotlyOutput("plot2"))
                                          )
                                ,tabPanel(title= "Savings"
+                                         ,tags$head(tags$style(".selectize-dropdown {position: static}"))
                                          ,splitLayout(
                                              selectInput(inputId = "yplot3"
                                                          ,label = "Y-axis:"
@@ -141,7 +147,7 @@ ui <- dashboardPage(
                   ,fluidRow(align = "center"
                             # We MUST load the ECharts javascript library in advance
                             ,loadEChartsLibrary()
-                            ,tags$div(id="test", style="width:50%;height:400px;")
+                            ,tags$div(id="test", style="width:70%;height:500px;")
                             ,deliverChart(div_id = "test")
                             )
                   )
@@ -167,8 +173,33 @@ server <- function(input, output) {
     set.seed(122)
     histdata <- rnorm(500)
     
+    Energy_subset <- reactive({
+        req(input$selected_type) # ensure availablity of value before proceeding
+        filter(CEnergy, BUILDING.TYPE  %in% input$selected_type)
+    })
+    
+    # Create new df that is n_samp obs from selected type properties ------
+    Energy_sample <- reactive({ 
+        req(input$n_samp) # ensure availablity of value before proceeding
+        sample_n(Energy_subset(), input$n_samp)
+    })  
+    
+    # Update the maximum allowed n_samp for selected type movies ------
+    observe({
+        updateNumericInput(session,
+                           inputId = "n_samp",
+                           value = min(10, nrow(Energy_subset())),
+                           max = nrow(Energy_subset())
+        )
+    })
+    
+    # Create scatterplot object the plotOutput function is expecting --
     output$plot1 <- renderPlotly({
-        plot_ly(mtcars, x = ~mpg, y = ~wt)
+        ggplotly(
+        ggplot(data = CEnergy, aes_string(x = input$xplot1, y = input$yplot1, color = input$zplot1))
+            #+geom_point( alpha = input$alpha) 
+            #+labs(title = pretty_plot_title()
+            )
     })
     
     output$plot2 <- renderPlotly({
@@ -178,16 +209,6 @@ server <- function(input, output) {
     output$plot3 <- renderPlotly({
         plot_ly(mtcars, x = ~mpg, y = ~wt)
     })
-    
-    
-    output$tabset1Selected <- renderPlotly({
-        plot_ly(mtcars, x = ~mpg, y = ~wt)
-    })
-    
-    output$table <- renderDataTable(mtcars
-                                    , options = list(pageLength = 25
-                                                    )
-                                    )
     
     output$progressBox <- renderValueBox({
         valueBox(
@@ -209,7 +230,7 @@ server <- function(input, output) {
     # Print data table if checked -------------------------------------
     output$energytable <- DT::renderDataTable(
         if(input$show_data){
-            DT::datatable(data = mtcars,
+            DT::datatable(data = CEnergy,
                           
                           # Enable Buttons --------------------------------
                           extensions = 'Buttons',
