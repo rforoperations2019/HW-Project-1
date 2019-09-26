@@ -158,8 +158,10 @@ ui <- dashboardPage(
                                 label = "Show data table",
                                 value = TRUE)
                   , fluidRow(
+                      # Add horizontal scroll bar
+                      div(style = 'overflow-x: scroll'
                       # Show data table ---------------------------------------------
-                      DT::dataTableOutput(outputId = "energytable")
+                      ,DT::dataTableOutput(outputId = "energytable"))
                       )
         )
         
@@ -202,12 +204,22 @@ server <- function(input, output) {
             )
     })
     
+    # Create scatterplot object the plotOutput function is expecting --
     output$plot2 <- renderPlotly({
-        plot_ly(mtcars, x = ~mpg, y = ~wt)
+        ggplotly(
+            ggplot(data = CEnergy, aes_string(x = input$xplot2, y = input$yplot2, color = input$zplot2))
+            #+geom_point( alpha = input$alpha) 
+            #+labs(title = pretty_plot_title()
+        )
     })
     
+    # Create scatterplot object the plotOutput function is expecting --
     output$plot3 <- renderPlotly({
-        plot_ly(mtcars, x = ~mpg, y = ~wt)
+        ggplotly(
+            ggplot(data = CEnergy, aes_string(x = input$xplot3, y = input$yplot3, color = input$zplot3))
+            #+geom_point( alpha = input$alpha) 
+            #+labs(title = pretty_plot_title()
+        )
     })
     
     output$progressBox <- renderValueBox({
@@ -230,18 +242,18 @@ server <- function(input, output) {
     # Print data table if checked -------------------------------------
     output$energytable <- DT::renderDataTable(
         if(input$show_data){
-            DT::datatable(data = CEnergy,
-                          
+                DT::datatable(data = CEnergy
                           # Enable Buttons --------------------------------
-                          extensions = 'Buttons',
-                          options = list(pageLength = 10,
-                                         
+                          ,extensions = 'Buttons'
+                          ,options = list(pageLength = 10,
                                          # Turn off search ----------------
                                          dom = "Btp",
-                                         
                                          # Buttons available --------------
-                                         buttons = c('copy', 'csv', 'excel', 'pdf', 'print')),
-                          rownames = FALSE) %>% 
+                                         buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+                                         )
+                          ,rownames = FALSE
+                          #,style = "height:500px; overflow-y: scroll;overflow-x: scroll;"
+                          )  %>% 
                 
                 # Format text example ---------------------------------------
             formatStyle(
