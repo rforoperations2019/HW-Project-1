@@ -6,14 +6,14 @@ library(DT)
 library(tidyr)
 library(ECharts2Shiny)
 
+#filter(CEnergy(), BUILDING.TYPE  %in% 
+
 # Load Data for Shiny Visualization
-#file.directory <- "C:/Users/hmdsa/Documents/GitHub/hw1_asanda/Chicago_Energy.csv"
 CEnergy <- read.csv("Chicago_Energy.csv")
 #View(CEnergy)
 
 # Clean data by removing incomplete reords
-na.FindAndRemove <- function(mydata)
-{
+na.FindAndRemove <- function(mydata){
     # We need to find the number of na's per row. Write code that would loop through each column and find if the number of NAs is equal to the number # of rows and then remove any column with all NA's
     for (i in NCOL(mydata)) 
     {
@@ -44,9 +44,8 @@ column.names <- c("COMMUNITY.AREA.NAME", "CENSUS.BLOCK", "BUILDING.TYPE", "BUILD
                   "THERMS.SQFT.MAXIMUM.2010", "TOTAL.POPULATION", "TOTAL.UNITS", "AVERAGE.STORIES", "AVERAGE.BUILDING.AGE", "AVERAGE.HOUSESIZE", "OCCUPIED.UNITS", "OCCUPIED.UNITS.PERCENTAGE", "RENTER.OCCUPIED.HOUSING.UNITS", "RENTER.OCCUPIED.HOUSING.PERCENTAGE", "OCCUPIED.HOUSING.UNITS")
 column.names <- as(column.names, "list")
 
-
-# Increase maximum upload file size to 1 GB
-options(shiny.maxRequestSize = 1000*1024^2)
+# Increase maximum upload file size to 0.5 GB
+options(shiny.maxRequestSize = 500*1024^2)
 
 
 ui <- dashboardPage(
@@ -91,6 +90,15 @@ ui <- dashboardPage(
                                                           ,selected = "BUILDING.TYPE")
                                              )
                                          , fluidRow(plotlyOutput("plot1"))
+                                         , fluidRow(checkboxInput(inputId = "show_data"
+                                                                  ,label = "Show data table"
+                                                                  ,value = TRUE))
+                                         , fluidRow(# Add horizontal scroll bar
+                                                    div(style = 'overflow-x: scroll'
+                                                         # Show data table ---------------------------------------------
+                                                         ,DT::dataTableOutput(outputId = "energytable1")
+                                                         )
+                                                    )
                                          )
                                ,tabPanel(title= "Month Over Month Trends"
                                          ,tags$head(tags$style(".selectize-dropdown {position: static}"))
@@ -110,6 +118,16 @@ ui <- dashboardPage(
                                                           ,selected = "BUILDING.TYPE")
                                          )
                                          , fluidRow(plotlyOutput("plot2"))
+                                         , fluidRow(checkboxInput(inputId = "show_data"
+                                                                  ,label = "Show data table"
+                                                                  ,value = TRUE))
+                                         , fluidRow(# Add horizontal scroll bar
+                                             div(style = 'overflow-x: scroll'
+                                                 # Show data table ---------------------------------------------
+                                                 ,DT::dataTableOutput(outputId = "energytable2")
+                                             )
+                                         )
+                                         
                                          )
                                ,tabPanel(title= "Savings"
                                          ,tags$head(tags$style(".selectize-dropdown {position: static}"))
@@ -129,6 +147,16 @@ ui <- dashboardPage(
                                                           ,selected = "BUILDING.TYPE")
                                          )
                                          , fluidRow(plotlyOutput("plot3"))
+                                         , fluidRow(checkboxInput(inputId = "show_data"
+                                                                  ,label = "Show data table"
+                                                                  ,value = TRUE))
+                                         , fluidRow(# Add horizontal scroll bar
+                                             div(style = 'overflow-x: scroll'
+                                                 # Show data table ---------------------------------------------
+                                                 ,DT::dataTableOutput(outputId = "energytable3")
+                                             )
+                                         )
+                                         
                                )
                                )
                         )
@@ -175,9 +203,19 @@ server <- function(input, output) {
     set.seed(122)
     histdata <- rnorm(500)
     
-    Energy_subset <- reactive({
-        req(input$selected_type) # ensure availablity of value before proceeding
-        filter(CEnergy, BUILDING.TYPE  %in% input$selected_type)
+    Energy_subset1 <- reactive({
+        #req(input$selected_type) # ensure availablity of value before proceeding
+        filter(CEnergy, BUILDING.TYPE  %in% input$xplot1)
+    })
+    
+    Energy_subset2 <- reactive({
+        #req(input$selected_type) # ensure availablity of value before proceeding
+        filter(CEnergy, BUILDING.TYPE  %in% input$xplot2)
+    })
+    
+    Energy_subset3 <- reactive({
+        #req(input$selected_type) # ensure availablity of value before proceeding
+        filter(CEnergy, BUILDING.TYPE  %in% input$xplot3)
     })
     
     # Create new df that is n_samp obs from selected type properties ------
@@ -187,19 +225,20 @@ server <- function(input, output) {
     })  
     
     # Update the maximum allowed n_samp for selected type movies ------
-    observe({
-        updateNumericInput(session,
-                           inputId = "n_samp",
-                           value = min(10, nrow(Energy_subset())),
-                           max = nrow(Energy_subset())
-        )
-    })
+   #observe({
+   #    updateNumericInput(session,
+   #                       inputId = "n_samp",
+   #                       value = min(10, nrow(Energy_subset())),
+   #                       max = nrow(Energy_subset())
+   #    )
+   #})
     
     # Create scatterplot object the plotOutput function is expecting --
     output$plot1 <- renderPlotly({
         ggplotly(
-        ggplot(data = CEnergy, aes_string(x = input$xplot1, y = input$yplot1, color = input$zplot1))
-            #+geom_point( alpha = input$alpha) 
+        ggplot(data = Energy_subset1(), aes_string(x = input$xplot1, y = input$yplot1, color = input$zplot1))
+            +geom_point() 
+        #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
             )
     })
@@ -207,8 +246,9 @@ server <- function(input, output) {
     # Create scatterplot object the plotOutput function is expecting --
     output$plot2 <- renderPlotly({
         ggplotly(
-            ggplot(data = CEnergy, aes_string(x = input$xplot2, y = input$yplot2, color = input$zplot2))
-            #+geom_point( alpha = input$alpha) 
+            ggplot(data = Energy_subset2(), aes_string(x = input$xplot2, y = input$yplot2, color = input$zplot2))
+            +geom_point( )
+            #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
         )
     })
@@ -216,8 +256,9 @@ server <- function(input, output) {
     # Create scatterplot object the plotOutput function is expecting --
     output$plot3 <- renderPlotly({
         ggplotly(
-            ggplot(data = CEnergy, aes_string(x = input$xplot3, y = input$yplot3, color = input$zplot3))
-            #+geom_point( alpha = input$alpha) 
+            ggplot(data = Energy_subset3(), aes_string(x = input$xplot3, y = input$yplot3, color = input$zplot3))
+            +geom_point() 
+                #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
         )
     })
@@ -240,9 +281,9 @@ server <- function(input, output) {
     renderGauge(div_id = "test",rate = 99, gauge_name = "Energy Usage Intensity", animation = T, show.tools = F)
     
     # Print data table if checked -------------------------------------
-    output$energytable <- DT::renderDataTable(
+    output$energytable1 <- DT::renderDataTable(
         if(input$show_data){
-                DT::datatable(data = CEnergy
+                DT::datatable(data = Energy_subset1()
                           # Enable Buttons --------------------------------
                           ,extensions = 'Buttons'
                           ,options = list(pageLength = 10,
@@ -252,7 +293,6 @@ server <- function(input, output) {
                                          buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
                                          )
                           ,rownames = FALSE
-                          #,style = "height:500px; overflow-y: scroll;overflow-x: scroll;"
                           )  %>% 
                 
                 # Format text example ---------------------------------------
@@ -271,6 +311,73 @@ server <- function(input, output) {
                 backgroundPosition = 'center')
         }
     )
+
+    
+    # Print data table if checked -------------------------------------
+    output$energytable2 <- DT::renderDataTable(
+        if(input$show_data){
+            DT::datatable(data = Energy_subset2()
+                          # Enable Buttons --------------------------------
+                          ,extensions = 'Buttons'
+                          ,options = list(pageLength = 10,
+                                          # Turn off search ----------------
+                                          dom = "Btp",
+                                          # Buttons available --------------
+                                          buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+                          )
+                          ,rownames = FALSE
+                          #,style = "height:500px; overflow-y: scroll;overflow-x: scroll;"
+            )  %>% 
+                
+                # Format text example ---------------------------------------
+            formatStyle(
+                columns = 5, 
+                valueColumns = 5, 
+                color = styleEqual(c("R","G", "PG", "PG-13"), c("red", "green", "blue", "yellow"))
+            ) %>%
+                
+                # Format background example ---------------------------------
+            formatStyle(
+                columns = 8,
+                background = styleColorBar(range(mtcars), '#cab2d6'),
+                backgroundSize = '98% 88%',
+                backgroundRepeat = 'no-repeat',
+                backgroundPosition = 'center')
+        }
+    )
+    
+    # Print data table if checked -------------------------------------
+    output$energytable3 <- DT::renderDataTable(
+        if(input$show_data){
+            DT::datatable(data = Energy_subset3()
+                          # Enable Buttons --------------------------------
+                          ,extensions = 'Buttons'
+                          ,options = list(pageLength = 10,
+                                          # Turn off search ----------------
+                                          dom = "Btp",
+                                          # Buttons available --------------
+                                          buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+                          )
+                          ,rownames = FALSE
+                          #,style = "height:500px; overflow-y: scroll;overflow-x: scroll;"
+            )  %>% 
+                
+                # Format text example ---------------------------------------
+            formatStyle(
+                columns = 5, 
+                valueColumns = 5, 
+                color = styleEqual(c("R","G", "PG", "PG-13"), c("red", "green", "blue", "yellow"))
+            ) %>%
+                
+                # Format background example ---------------------------------
+            formatStyle(
+                columns = 8,
+                background = styleColorBar(range(mtcars), '#cab2d6'),
+                backgroundSize = '98% 88%',
+                backgroundRepeat = 'no-repeat',
+                backgroundPosition = 'center')
+        }
+    )    
     
 }
 
