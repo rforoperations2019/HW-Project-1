@@ -6,11 +6,39 @@ library(DT)
 library(tidyr)
 library(ECharts2Shiny)
 
-#filter(CEnergy(), BUILDING.TYPE  %in% 
 
 # Load Data for Shiny Visualization
-CEnergy <- read.csv("Chicago_Energy.csv")
-#View(CEnergy)
+doCoerce <- function(x, class) {
+    if (canCoerce(x, class))
+        as(x, class)
+    else {
+        result <- try(match.fun(paste("as", class, sep="."))(x), silent=TRUE);
+        if (inherits(result, "try-error"))
+            result <- match.fun(class)(x)
+        result;
+    }
+}
+
+expandClasses <- function (x) {
+    unknowns <- character(0)
+    result <- lapply(strsplit(as.character(x), NULL, fixed = TRUE),
+                     function(y) {
+                         sapply(y, function(z) switch(z,
+                                                      i = "integer", n = "numeric",
+                                                      l = "logical", c = "character", x = "complex",
+                                                      r = "raw", f = "factor", D = "Date", P = "POSIXct",
+                                                      t = "POSIXlt", N = NA_character_, {
+                                                          unknowns <<- c(unknowns, z)
+                                                          NA_character_
+                                                      }), USE.NAMES = FALSE)
+                     })
+    if (length(unknowns)) {
+        unknowns <- unique(unknowns)
+        warning(sprintf(ngettext(length(unknowns), "code %s not recognized",
+                                 "codes %s not recognized"), dqMsg(unknowns)))
+    }
+    result
+}
 
 # Clean data by removing incomplete reords
 na.FindAndRemove <- function(mydata){
@@ -25,8 +53,16 @@ na.FindAndRemove <- function(mydata){
     mydata <- na.omit(mydata)
     return(mydata)
 }
-CEnergy <- na.FindAndRemove(CEnergy)
+
+
+#CEnergy <- read.csv("Chicago_Energy.csv")
+#CEnergy <- na.FindAndRemove(CEnergy)
+# Convert columns to appropriate data formats dynamically with helper functions doCoerce and expandClasses
+#data.frame(mapply(doCoerce, CEnergy, expandClasses("Dif")[[1L]], SIMPLIFY=FALSE), stringsAsFactors=FALSE)
+
 #View(CEnergy)
+#lapply(CEnergy, class)
+
 
 #Pull Column names as list to input in dashboard
 columns <- as.data.frame(colnames(CEnergy))
@@ -35,14 +71,22 @@ columns <- as.data.frame(colnames(CEnergy))
 columns.list <- split(columns, seq(nrow(columns)), rownames(columns))
 
 
-column.names <- c("COMMUNITY.AREA.NAME", "CENSUS.BLOCK", "BUILDING.TYPE", "BUILDING_SUBTYPE", "KWH.JANUARY.2010", "KWH.FEBRUARY.2010", "KWH.MARCH.2010", "KWH.APRIL.2010", "KWH.MAY.2010", "KWH.JUNE.2010", "KWH.JULY.2010", "KWH.AUGUST.2010",
-                  "KWH.SEPTEMBER.2010", "KWH.OCTOBER.2010", "KWH.NOVEMBER.2010", "KWH.DECEMBER.2010", "TOTAL.KWH", "ELECTRICITY.ACCOUNTS", "ZERO.KWH.ACCOUNTS", "THERM.JANUARY.2010", "THERM.FEBRUARY.2010", "THERM.MARCH.2010", "THERM.APRIL.2010",
-                  "THERM.MAY.2010", "THERM.JUNE.2010", "THERM.JULY.2010", "THERM.AUGUST.2010", "THERM.SEPTEMBER.2010", "THERM.OCTOBER.2010", "THERM.NOVEMBER.2010", "THERM.DECEMBER.2010", "TOTAL.THERMS", "GAS.ACCOUNTS", "KWH.TOTAL.SQFT", "THERMS.TOTAL.SQFT",
+column.names.y <- c("KWH.JANUARY.2010", "KWH.FEBRUARY.2010", "KWH.MARCH.2010", "KWH.APRIL.2010", "KWH.MAY.2010", "KWH.JUNE.2010", "KWH.JULY.2010", "KWH.AUGUST.2010",
+                  "KWH.SEPTEMBER.2010", "KWH.OCTOBER.2010", "KWH.NOVEMBER.2010", "KWH.DECEMBER.2010", "TOTAL.KWH", "THERM.JANUARY.2010", "THERM.FEBRUARY.2010", "THERM.MARCH.2010", "THERM.APRIL.2010",
+                  "THERM.MAY.2010", "THERM.JUNE.2010", "THERM.JULY.2010", "THERM.AUGUST.2010", "THERM.SEPTEMBER.2010", "THERM.OCTOBER.2010", "THERM.NOVEMBER.2010", "THERM.DECEMBER.2010", "TOTAL.THERMS", "KWH.TOTAL.SQFT", "THERMS.TOTAL.SQFT",
                   "KWH.MEAN.2010", "KWH.STANDARD.DEVIATION.2010", "KWH.MINIMUM.2010", "KWH.1ST.QUARTILE.2010", "KWH.2ND.QUARTILE.2010", "KWH.3RD.QUARTILE.2010", "KWH.MAXIMUM.2010", "KWH.SQFT.MEAN.2010", "KWH.SQFT.STANDARD.DEVIATION.2010", "KWH.SQFT.MINIMUM.2010",
                   "KWH.SQFT.1ST.QUARTILE.2010", "KWH.SQFT.2ND.QUARTILE.2010", "KWH.SQFT.3RD.QUARTILE.2010", "KWH.SQFT.MAXIMUM.2010", "THERM.MEAN.2010", "THERM.STANDARD.DEVIATION.2010", "THERM.MINIMUM.2010", "THERM.1ST.QUARTILE.2010", "THERM.2ND.QUARTILE.2010",
                   "THERM.3RD.QUARTILE.2010", "THERM.MAXIMUM.2010", "THERMS.SQFT.MEAN.2010", "THERMS.SQFT.STANDARD.DEVIATION.2010", "THERMS.SQFT.MINIMUM.2010", "THERMS.SQFT.1ST.QUARTILE.2010", "THERMS.SQFT.2ND.QUARTILE.2010", "THERMS.SQFT.3RD.QUARTILE.2010",
-                  "THERMS.SQFT.MAXIMUM.2010", "TOTAL.POPULATION", "TOTAL.UNITS", "AVERAGE.STORIES", "AVERAGE.BUILDING.AGE", "AVERAGE.HOUSESIZE", "OCCUPIED.UNITS", "OCCUPIED.UNITS.PERCENTAGE", "RENTER.OCCUPIED.HOUSING.UNITS", "RENTER.OCCUPIED.HOUSING.PERCENTAGE", "OCCUPIED.HOUSING.UNITS")
-column.names <- as(column.names, "list")
+                  "THERMS.SQFT.MAXIMUM.2010")
+
+
+column.names.x <- c("COMMUNITY.AREA.NAME", "CENSUS.BLOCK", "BUILDING.TYPE", "BUILDING_SUBTYPE", "ELECTRICITY.ACCOUNTS"
+                    , "ZERO.KWH.ACCOUNTS", "GAS.ACCOUNTS", "TOTAL.POPULATION", "TOTAL.UNITS", "AVERAGE.STORIES"
+                    , "AVERAGE.BUILDING.AGE", "AVERAGE.HOUSESIZE", "OCCUPIED.UNITS", "OCCUPIED.UNITS.PERCENTAGE"
+                    , "RENTER.OCCUPIED.HOUSING.UNITS", "RENTER.OCCUPIED.HOUSING.PERCENTAGE", "OCCUPIED.HOUSING.UNITS")
+
+column.names.x <- as(column.names.x, "list")
+column.names.y <- as(column.names.y, "list")
 
 # Increase maximum upload file size to 0.5 GB
 options(shiny.maxRequestSize = 500*1024^2)
@@ -53,16 +97,19 @@ ui <- dashboardPage(
     ## Sidebar content
     ,dashboardSidebar(
         sidebarMenu(
-            fileInput("file", "CSV file")
-            ,actionButton("submit", label = "Submit")
+            #fileInput("file", "CSV file")
+            #actionButton("submit", label = "Submit")
             # Select sample size ----------------------------------------------------
-            ,numericInput(inputId = "n_samp", 
-                         label = "Sample size:", 
-                         min = 1, max = nrow(CEnergy), 
-                         value = 1)
+            uiOutput("Areaname")
+            ,uiOutput("Censusblock")
+            ,uiOutput("Buildingtype")
+            ,uiOutput("Buildingsubtype")
+            ,uiOutput("Avgstories")
+            ,uiOutput("Avgbldgage")
+            ,uiOutput("Avghousesize")
             ,menuItem("Widgets", tabName = "widgets", icon = icon("th"))
             ,menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
-            ,menuItem("Data", tabName = "data", icon = icon("table"))
+            #,menuItem("Data", tabName = "data", icon = icon("table"))
             #,uiOutput("field_chooser_ui")
             )
         )
@@ -77,16 +124,16 @@ ui <- dashboardPage(
                                          ,splitLayout(
                                              selectInput(inputId = "yplot1"
                                                          ,label = "Y-axis:"
-                                                         ,choices = column.names
-                                                         ,selected = "KWH.JANUARY.2010")
+                                                         ,choices = column.names.y
+                                                         ,selected = "TOTAL.KWH")
                                              ,selectInput(inputId = "xplot1"
                                                           ,label = "X-axis:"
-                                                          ,choices = column.names
+                                                          ,choices = column.names.x
                                                           ,selected = "COMMUNITY.AREA.NAME"
                                                           )
                                              ,selectInput(inputId = "zplot1"
                                                           ,label = "Color by"
-                                                          ,choices = column.names
+                                                          ,choices = column.names.x
                                                           ,selected = "BUILDING.TYPE")
                                              )
                                          , fluidRow(plotlyOutput("plot1"))
@@ -105,16 +152,16 @@ ui <- dashboardPage(
                                          ,splitLayout(
                                              selectInput(inputId = "yplot2"
                                                          ,label = "Y-axis:"
-                                                         ,choices = column.names
+                                                         ,choices = column.names.y
                                                          ,selected = "KWH.JANUARY.2010")
                                              ,selectInput(inputId = "xplot2"
                                                           ,label = "X-axis:"
-                                                          ,choices = column.names
+                                                          ,choices = column.names.x
                                                           ,selected = "COMMUNITY.AREA.NAME"
                                              )
                                              ,selectInput(inputId = "zplot2"
                                                           ,label = "Color by"
-                                                          ,choices = column.names
+                                                          ,choices = column.names.x
                                                           ,selected = "BUILDING.TYPE")
                                          )
                                          , fluidRow(plotlyOutput("plot2"))
@@ -134,16 +181,16 @@ ui <- dashboardPage(
                                          ,splitLayout(
                                              selectInput(inputId = "yplot3"
                                                          ,label = "Y-axis:"
-                                                         ,choices = column.names
+                                                         ,choices = column.names.y
                                                          ,selected = "KWH.JANUARY.2010")
                                              ,selectInput(inputId = "xplot3"
                                                           ,label = "X-axis:"
-                                                          ,choices = column.names
+                                                          ,choices = column.names.x
                                                           ,selected = "COMMUNITY.AREA.NAME"
                                              )
                                              ,selectInput(inputId = "zplot3"
                                                           ,label = "Color by"
-                                                          ,choices = column.names
+                                                          ,choices = column.names.x
                                                           ,selected = "BUILDING.TYPE")
                                          )
                                          , fluidRow(plotlyOutput("plot3"))
@@ -200,43 +247,133 @@ ui <- dashboardPage(
 
 
 server <- function(input, output) {
-    set.seed(122)
-    histdata <- rnorm(500)
+    CEnergy <- read.csv("Chicago_Energy.csv")
+    CEnergy <- na.FindAndRemove(CEnergy)
     
-    Energy_subset1 <- reactive({
-        #req(input$selected_type) # ensure availablity of value before proceeding
-        filter(CEnergy, BUILDING.TYPE  %in% input$xplot1)
+    output$Areaname <- renderUI({
+        arealist <- sort(unique(as.vector(CEnergy$COMMUNITY.AREA.NAME)), decreasing = FALSE)
+        arealist <- append(arealist, "All", after =  0)
+        selectizeInput("Areaname", "Area Name:", arealist)
     })
     
-    Energy_subset2 <- reactive({
-        #req(input$selected_type) # ensure availablity of value before proceeding
-        filter(CEnergy, BUILDING.TYPE  %in% input$xplot2)
+    
+    output$Censusblock <- renderUI({
+        cblocklist <- sort(unique(as.vector(CEnergy$CENSUS.BLOCK)), decreasing = FALSE)
+        cblocklist <- append(cblocklist, "All", 0)
+        selectizeInput("Censusblock", "Census Block:", cblocklist)
     })
     
-    Energy_subset3 <- reactive({
-        #req(input$selected_type) # ensure availablity of value before proceeding
-        filter(CEnergy, BUILDING.TYPE  %in% input$xplot3)
+    output$Buildingtype <- renderUI({
+        Buildingtype <- sort(unique(as.vector(CEnergy$BUILDING.TYPE)), decreasing = FALSE)
+        Buildingtype <- append(Buildingtype, "All", 0)
+        selectizeInput("Buildingtype", "Building Type:", Buildingtype)
     })
     
-    # Create new df that is n_samp obs from selected type properties ------
-    Energy_sample <- reactive({ 
-        req(input$n_samp) # ensure availablity of value before proceeding
-        sample_n(Energy_subset(), input$n_samp)
-    })  
+    output$Buildingsubtype <- renderUI({
+        Buildingsubtype <- sort(unique(as.vector(CEnergy$BUILDING_SUBTYPE)), decreasing = FALSE)
+        Buildingsubtype <- append(Buildingsubtype, "All", 0)
+        selectizeInput("Buildingsubtype", "Building Sub-Type:", Buildingsubtype)
+    })
     
-    # Update the maximum allowed n_samp for selected type movies ------
-   #observe({
-   #    updateNumericInput(session,
-   #                       inputId = "n_samp",
-   #                       value = min(10, nrow(Energy_subset())),
-   #                       max = nrow(Energy_subset())
-   #    )
-   #})
+    output$Avgstories <- renderUI({
+        Avgstories <- sort(unique(as.vector(CEnergy$AVERAGE.STORIES)), decreasing = FALSE)
+        Avgstories <- append(Avgstories, "All", 0)
+        sliderInput("Avgstories"
+                    ,"Average Stories:"
+                    , min = min(CEnergy$AVERAGE.STORIES)
+                    , max = max(CEnergy$AVERAGE.STORIES)
+                    , value = c(1,3)
+                    , step = 0.1 )
+    })
+    
+    output$Avgbldgage <- renderUI({
+        Avgbldgage <- sort(unique(as.vector(CEnergy$AVERAGE.BUILDING.AGE)), decreasing = FALSE)
+        Avgbldgage <- append(Avgbldgage, "All", 0)
+        sliderInput("Avgbldgage"
+                    ,"Average Building Age:"
+                    , min = min(CEnergy$AVERAGE.BUILDING.AGE)
+                    , max = max(CEnergy$AVERAGE.BUILDING.AGE)
+                    , value = c(5,10)
+                    , step = 1 )
+    })
+    
+    output$Avghousesize <- renderUI({
+        Avghousesize <- sort(unique(as.vector(CEnergy$AVERAGE.HOUSESIZE)), decreasing = FALSE)
+        Avghousesize <- append(Avghousesize, "All", 0)
+        sliderInput("Avghousesize"
+                    ,"Average House Size:"
+                    , min = min(CEnergy$AVERAGE.HOUSESIZE)
+                    , max = max(CEnergy$AVERAGE.HOUSESIZE)
+                    , value = c(2,3)
+                    , step = 1 )
+    })
+    
+    energy_subset <- reactive({
+        req(input$Areaname)
+        req(input$Censusblock)
+        req(input$Buildingtype)
+        req(input$Buildingsubtype)
+        req(input$Avgstories)
+        req(input$Avgbldgage)
+        req(input$Avghousesize)
+        
+        
+        if(input$Areaname == "All") {
+            filt1 <- quote(COMMUNITY.AREA.NAME != "@?><")
+        } else {
+            filt1 <- quote(COMMUNITY.AREA.NAME == input$Areaname) 
+        }
+        
+        if (input$Censusblock == "All") {
+            filt2 <- quote(CENSUS.BLOCK != "@?><")
+        } else {
+            filt2 <- quote(CENSUS.BLOCK == input$Censusblock)
+        }
+        
+        if (input$Buildingtype == "All") {
+            filt3 <- quote(BUILDING.TYPE != "@?><")
+        } else {
+            filt3 <- quote(BUILDING.TYPE == input$Buildingtype)
+        }
+        
+        if (input$Buildingsubtype == "All") {
+            filt4 <- quote(BUILDING_SUBTYPE != "@?><")
+        } else {
+            filt4 <- quote(BUILDING_SUBTYPE == input$Buildingsubtype)
+        }
+        
+        if (input$Avgstories == "All") {
+            filt5 <- quote(AVERAGE.STORIES != "@?><")
+        } else {
+            filt5 <- quote(AVERAGE.STORIES >= min(input$Avgstories) & AVERAGE.STORIES <= max(input$Avgstories))
+        }
+        
+        if (input$Avgbldgage == "All") {
+            filt6 <- quote(AVERAGE.BUILDING.AGE != "@?><")
+        } else {
+            filt6 <- quote(AVERAGE.BUILDING.AGE >= min(input$Avgbldgage) & AVERAGE.BUILDING.AGE <= max(input$Avgbldgage))
+        }
+        
+        if (input$Avghousesize == "All") {
+            filt7 <- quote(AVERAGE.HOUSESIZE != "@?><")
+        } else {
+            filt7 <- quote(AVERAGE.HOUSESIZE >= min(input$Avghousesize) & AVERAGE.HOUSESIZE <= max(input$Avghousesize))
+        }
+        
+        CEnergy %>%
+            filter_(filt1) %>%
+            filter_(filt2) %>%
+            filter_(filt3) %>%
+            filter_(filt4) %>%
+            filter_(filt5) %>%
+            filter_(filt6) %>%
+            filter_(filt7)
+    })
     
     # Create scatterplot object the plotOutput function is expecting --
     output$plot1 <- renderPlotly({
         ggplotly(
-        ggplot(data = Energy_subset1(), aes_string(x = input$xplot1, y = input$yplot1, color = input$zplot1))
+        ggplot(data = energy_subset(), aes_string(x = input$xplot1, y = input$yplot1, color = input$zplot1))
             +geom_point() 
         #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
@@ -246,7 +383,7 @@ server <- function(input, output) {
     # Create scatterplot object the plotOutput function is expecting --
     output$plot2 <- renderPlotly({
         ggplotly(
-            ggplot(data = Energy_subset2(), aes_string(x = input$xplot2, y = input$yplot2, color = input$zplot2))
+            ggplot(data = energy_subset(), aes_string(x = input$xplot2, y = input$yplot2, color = input$zplot2))
             +geom_point( )
             #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
@@ -256,7 +393,7 @@ server <- function(input, output) {
     # Create scatterplot object the plotOutput function is expecting --
     output$plot3 <- renderPlotly({
         ggplotly(
-            ggplot(data = Energy_subset3(), aes_string(x = input$xplot3, y = input$yplot3, color = input$zplot3))
+            ggplot(data = energy_subset(), aes_string(x = input$xplot3, y = input$yplot3, color = input$zplot3))
             +geom_point() 
                 #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
@@ -283,7 +420,7 @@ server <- function(input, output) {
     # Print data table if checked -------------------------------------
     output$energytable1 <- DT::renderDataTable(
         if(input$show_data){
-                DT::datatable(data = Energy_subset1()
+                DT::datatable(data = energy_subset()
                           # Enable Buttons --------------------------------
                           ,extensions = 'Buttons'
                           ,options = list(pageLength = 10,
@@ -316,7 +453,7 @@ server <- function(input, output) {
     # Print data table if checked -------------------------------------
     output$energytable2 <- DT::renderDataTable(
         if(input$show_data){
-            DT::datatable(data = Energy_subset2()
+            DT::datatable(data = energy_subset()
                           # Enable Buttons --------------------------------
                           ,extensions = 'Buttons'
                           ,options = list(pageLength = 10,
@@ -349,7 +486,7 @@ server <- function(input, output) {
     # Print data table if checked -------------------------------------
     output$energytable3 <- DT::renderDataTable(
         if(input$show_data){
-            DT::datatable(data = Energy_subset3()
+            DT::datatable(data = energy_subset()
                           # Enable Buttons --------------------------------
                           ,extensions = 'Buttons'
                           ,options = list(pageLength = 10,
