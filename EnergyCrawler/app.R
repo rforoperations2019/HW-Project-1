@@ -164,7 +164,7 @@ ui <- dashboardPage(
                       # A static valueBox
                       #adjust height of value boxes for presentation
                       tags$head(tags$style(HTML(".small-box {height: 200px}")))
-                      ,valueBox(10 * 2, "New Orders", icon = icon("credit-card"))
+                      ,valueBoxOutput("electricconsumption")
                       # Dynamic valueBoxes
                       ,valueBoxOutput("progressBox")
                       ,valueBoxOutput("approvalBox")
@@ -204,26 +204,26 @@ server <- function(input, output) {
     output$Areaname <- renderUI({
         arealist <- sort(unique(as.vector(CEnergy$COMMUNITY.AREA.NAME)), decreasing = FALSE)
         arealist <- append(arealist, "All", after =  0)
-        selectizeInput("Areaname", "Area Name:", arealist, multiple = T)
+        selectizeInput("Areaname", "Area Name:", arealist, multiple = T, selected = "All")
     })
     
     
     output$Censusblock <- renderUI({
         cblocklist <- sort(unique(as.vector(CEnergy$CENSUS.BLOCK)), decreasing = FALSE)
         cblocklist <- append(cblocklist, "All", 0)
-        selectizeInput("Censusblock", "Census Block:", cblocklist, multiple = T)
+        selectizeInput("Censusblock", "Census Block:", cblocklist, multiple = T, selected = "All")
     })
     
     output$Buildingtype <- renderUI({
         Buildingtype <- sort(unique(as.vector(CEnergy$BUILDING.TYPE)), decreasing = FALSE)
         Buildingtype <- append(Buildingtype, "All", 0)
-        selectizeInput("Buildingtype", "Building Type:", Buildingtype, multiple = T)
+        selectizeInput("Buildingtype", "Building Type:", Buildingtype, multiple = T, , selected = "All")
     })
     
     output$Buildingsubtype <- renderUI({
         Buildingsubtype <- sort(unique(as.vector(CEnergy$BUILDING_SUBTYPE)), decreasing = FALSE)
         Buildingsubtype <- append(Buildingsubtype, "All", 0)
-        selectizeInput("Buildingsubtype", "Building Sub-Type:", Buildingsubtype, multiple = T)
+        selectizeInput("Buildingsubtype", "Building Sub-Type:", Buildingsubtype, multiple = T, selected = "All")
     })
     
     output$Avgstories <- renderUI({
@@ -318,18 +318,16 @@ server <- function(input, output) {
             filter_(filt4) %>%
             filter_(filt5) %>%
             filter_(filt6) %>%
-            filter_(filt7) 
+            filter_(filt7)  
             #%>% mutate(TotalConsumption = sum(TOTAL.KWH)
-            #           , TotalTherms = sum(TOTAL.THERMS)
-            #           , EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT))
+            #            , TotalTherms = sum(TOTAL.THERMS)
+            #            , EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT))
     }))
     
     plot1df <- reactive({
         energy_subset() %>% 
         group_by(input$xplot1) %>% 
-        mutate(TotalConsumption = sum(TOTAL.KWH)) %>%
-            unique() %>%
-            arrange(input$xplot1)
+        mutate(TotalConsumption = sum(TOTAL.KWH))
     })
     
     plot2df <- reactive({
@@ -373,15 +371,20 @@ server <- function(input, output) {
     
     output$progressBox <- renderValueBox({
         valueBox(
-            paste0(25, "%"), "Progress", icon = icon("list"),
-            color = "purple"
+            paste0(length(unique(energy_subset()$COMMUNITY.AREA.NAME))), "Neighbourhoods", icon = icon("home")
+            ,color = "purple"
         )
     })
     
     output$approvalBox <- renderValueBox({
-        valueBox(
-            "80%", "Approval", icon = icon("thumbs-up", lib = "glyphicon"),
-            color = "yellow"
+        valueBox(sum(energy_subset()$TOTAL.THERMS), "Thermal Consumption (Therms)", icon = icon("fire")
+                 ,color = "yellow"
+        )
+    })
+    
+    output$electricconsumption <- renderValueBox({
+        valueBox(sum(energy_subset()$TOTAL.KWH), "Electric Consumption (kWH)", icon = icon("bolt")
+                 ,color = "yellow"
         )
     })
     
@@ -413,8 +416,8 @@ server <- function(input, output) {
                 # Format background example ---------------------------------
             formatStyle(
                 columns = 8,
-                background = styleColorBar(range(mtcars), '#cab2d6'),
-                backgroundSize = '98% 88%',
+                #background = styleColorBar(range(CEnergy), '#cab2d6'),
+                backgroundSize = '90% 85%',
                 backgroundRepeat = 'no-repeat',
                 backgroundPosition = 'center')
         }
@@ -447,8 +450,8 @@ server <- function(input, output) {
                 # Format background example ---------------------------------
             formatStyle(
                 columns = 8,
-                background = styleColorBar(range(mtcars), '#cab2d6'),
-                backgroundSize = '98% 88%',
+                #background = styleColorBar(range(CEnergy), '#cab2d6'),
+                backgroundSize = '90% 85%',
                 backgroundRepeat = 'no-repeat',
                 backgroundPosition = 'center')
         }
@@ -480,8 +483,8 @@ server <- function(input, output) {
                 # Format background example ---------------------------------
             formatStyle(
                 columns = 8,
-                background = styleColorBar(range(mtcars), '#cab2d6'),
-                backgroundSize = '98% 88%',
+                #background = styleColorBar(range(CEnergy), '#cab2d6'),
+                backgroundSize = '90% 85%',
                 backgroundRepeat = 'no-repeat',
                 backgroundPosition = 'center')
         }
