@@ -6,41 +6,7 @@ library(DT)
 library(tidyr)
 library(ECharts2Shiny)
 
-
-# Load Data for Shiny Visualization
-doCoerce <- function(x, class) {
-    if (canCoerce(x, class))
-        as(x, class)
-    else {
-        result <- try(match.fun(paste("as", class, sep="."))(x), silent=TRUE);
-        if (inherits(result, "try-error"))
-            result <- match.fun(class)(x)
-        result;
-    }
-}
-
-expandClasses <- function (x) {
-    unknowns <- character(0)
-    result <- lapply(strsplit(as.character(x), NULL, fixed = TRUE),
-                     function(y) {
-                         sapply(y, function(z) switch(z,
-                                                      i = "integer", n = "numeric",
-                                                      l = "logical", c = "character", x = "complex",
-                                                      r = "raw", f = "factor", D = "Date", P = "POSIXct",
-                                                      t = "POSIXlt", N = NA_character_, {
-                                                          unknowns <<- c(unknowns, z)
-                                                          NA_character_
-                                                      }), USE.NAMES = FALSE)
-                     })
-    if (length(unknowns)) {
-        unknowns <- unique(unknowns)
-        warning(sprintf(ngettext(length(unknowns), "code %s not recognized",
-                                 "codes %s not recognized"), dqMsg(unknowns)))
-    }
-    result
-}
-
-# Clean data by removing incomplete reords
+# Clean data script by removing incomplete reords
 na.FindAndRemove <- function(mydata){
     # We need to find the number of na's per row. Write code that would loop through each column and find if the number of NAs is equal to the number # of rows and then remove any column with all NA's
     for (i in NCOL(mydata)) 
@@ -97,20 +63,16 @@ ui <- dashboardPage(
     ## Sidebar content
     ,dashboardSidebar(
         sidebarMenu(
-            #fileInput("file", "CSV file")
-            #actionButton("submit", label = "Submit")
-            # Select sample size ----------------------------------------------------
-            uiOutput("Areaname")
+            menuItem("Widgets", tabName = "widgets", icon = icon("th"))
+            ,menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
+            ,uiOutput("Areaname")
             ,uiOutput("Censusblock")
             ,uiOutput("Buildingtype")
             ,uiOutput("Buildingsubtype")
             ,uiOutput("Avgstories")
             ,uiOutput("Avgbldgage")
             ,uiOutput("Avghousesize")
-            ,menuItem("Widgets", tabName = "widgets", icon = icon("th"))
-            ,menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
-            #,menuItem("Data", tabName = "data", icon = icon("table"))
-            #,uiOutput("field_chooser_ui")
+            ,actionButton("submit", label = "Submit")
             )
         )
     ## Body content
@@ -119,14 +81,10 @@ ui <- dashboardPage(
             tabItem(tabName = "dashboard"
                     ,fluidRow(
                         tabBox(width = 450, height = 500
-                               ,tabPanel(title= "Energy Overview"
+                               ,tabPanel(title= "Electricity Consumption Overview"
                                          ,tags$head(tags$style(".selectize-dropdown {position: static}"))
                                          ,splitLayout(
-                                             selectInput(inputId = "yplot1"
-                                                         ,label = "Y-axis:"
-                                                         ,choices = column.names.y
-                                                         ,selected = "TOTAL.KWH")
-                                             ,selectInput(inputId = "xplot1"
+                                             selectInput(inputId = "xplot1"
                                                           ,label = "X-axis:"
                                                           ,choices = column.names.x
                                                           ,selected = "COMMUNITY.AREA.NAME"
@@ -147,14 +105,10 @@ ui <- dashboardPage(
                                                          )
                                                     )
                                          )
-                               ,tabPanel(title= "Month Over Month Trends"
+                               ,tabPanel(title= "Heating Consumption Overview"
                                          ,tags$head(tags$style(".selectize-dropdown {position: static}"))
                                          ,splitLayout(
-                                             selectInput(inputId = "yplot2"
-                                                         ,label = "Y-axis:"
-                                                         ,choices = column.names.y
-                                                         ,selected = "KWH.JANUARY.2010")
-                                             ,selectInput(inputId = "xplot2"
+                                             selectInput(inputId = "xplot2"
                                                           ,label = "X-axis:"
                                                           ,choices = column.names.x
                                                           ,selected = "COMMUNITY.AREA.NAME"
@@ -176,14 +130,10 @@ ui <- dashboardPage(
                                          )
                                          
                                          )
-                               ,tabPanel(title= "Savings"
+                               ,tabPanel(title= "Energy Usage Intensity"
                                          ,tags$head(tags$style(".selectize-dropdown {position: static}"))
                                          ,splitLayout(
-                                             selectInput(inputId = "yplot3"
-                                                         ,label = "Y-axis:"
-                                                         ,choices = column.names.y
-                                                         ,selected = "KWH.JANUARY.2010")
-                                             ,selectInput(inputId = "xplot3"
+                                             selectInput(inputId = "xplot3"
                                                           ,label = "X-axis:"
                                                           ,choices = column.names.x
                                                           ,selected = "COMMUNITY.AREA.NAME"
@@ -293,7 +243,7 @@ server <- function(input, output) {
                     ,"Average Building Age:"
                     , min = min(CEnergy$AVERAGE.BUILDING.AGE)
                     , max = max(CEnergy$AVERAGE.BUILDING.AGE)
-                    , value = c(5,10)
+                    , value = c(0,50)
                     , step = 1 )
     })
     
@@ -304,8 +254,8 @@ server <- function(input, output) {
                     ,"Average House Size:"
                     , min = min(CEnergy$AVERAGE.HOUSESIZE)
                     , max = max(CEnergy$AVERAGE.HOUSESIZE)
-                    , value = c(2,3)
-                    , step = 1 )
+                    , value = c(1,3)
+                    , step = 0.5 )
     })
     
     energy_subset <- reactive({
@@ -367,13 +317,34 @@ server <- function(input, output) {
             filter_(filt4) %>%
             filter_(filt5) %>%
             filter_(filt6) %>%
-            filter_(filt7)
+            filter_(filt7) 
+            #%>% mutate(TotalConsumption = sum(TOTAL.KWH)
+            #           , TotalTherms = sum(TOTAL.THERMS)
+            #           , EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT))
+    })
+    
+    plot1df <- reactive({
+        energy_subset() %>% 
+        group_by(input$xplot1) %>% 
+        mutate(TotalConsumption = sum(TOTAL.KWH))
+    })
+    
+    plot2df <- reactive({
+        energy_subset() %>% 
+            group_by(input$xplot2) %>% 
+            mutate(TotalTherms = sum(TOTAL.THERMS))
+    })
+    
+    plot3df <- reactive({
+        energy_subset() %>% 
+            group_by(input$xplot3) %>% 
+            mutate(EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT))
     })
     
     # Create scatterplot object the plotOutput function is expecting --
     output$plot1 <- renderPlotly({
         ggplotly(
-        ggplot(data = energy_subset(), aes_string(x = input$xplot1, y = input$yplot1, color = input$zplot1))
+        ggplot(data = plot1df(), aes_string(x = input$xplot1, y = plot1df()$TotalConsumption, color = input$zplot1))
             +geom_point() 
         #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
@@ -383,7 +354,7 @@ server <- function(input, output) {
     # Create scatterplot object the plotOutput function is expecting --
     output$plot2 <- renderPlotly({
         ggplotly(
-            ggplot(data = energy_subset(), aes_string(x = input$xplot2, y = input$yplot2, color = input$zplot2))
+            ggplot(data = plot2df(), aes_string(x = input$xplot2, y = plot2df()$TOTAL.THERMS, color = input$zplot2))
             +geom_point( )
             #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
@@ -393,7 +364,7 @@ server <- function(input, output) {
     # Create scatterplot object the plotOutput function is expecting --
     output$plot3 <- renderPlotly({
         ggplotly(
-            ggplot(data = energy_subset(), aes_string(x = input$xplot3, y = input$yplot3, color = input$zplot3))
+            ggplot(data = plot3df(), aes_string(x = input$xplot3, y = plot3df()$EUI, color = input$zplot3))
             +geom_point() 
                 #alpha = input$alpha) 
             #+labs(title = pretty_plot_title()
