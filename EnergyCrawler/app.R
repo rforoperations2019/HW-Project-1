@@ -204,26 +204,26 @@ server <- function(input, output) {
     output$Areaname <- renderUI({
         arealist <- sort(unique(as.vector(CEnergy$COMMUNITY.AREA.NAME)), decreasing = FALSE)
         arealist <- append(arealist, "All", after =  0)
-        selectizeInput("Areaname", "Area Name:", arealist)
+        selectizeInput("Areaname", "Area Name:", arealist, multiple = T)
     })
     
     
     output$Censusblock <- renderUI({
         cblocklist <- sort(unique(as.vector(CEnergy$CENSUS.BLOCK)), decreasing = FALSE)
         cblocklist <- append(cblocklist, "All", 0)
-        selectizeInput("Censusblock", "Census Block:", cblocklist)
+        selectizeInput("Censusblock", "Census Block:", cblocklist, multiple = T)
     })
     
     output$Buildingtype <- renderUI({
         Buildingtype <- sort(unique(as.vector(CEnergy$BUILDING.TYPE)), decreasing = FALSE)
         Buildingtype <- append(Buildingtype, "All", 0)
-        selectizeInput("Buildingtype", "Building Type:", Buildingtype)
+        selectizeInput("Buildingtype", "Building Type:", Buildingtype, multiple = T)
     })
     
     output$Buildingsubtype <- renderUI({
         Buildingsubtype <- sort(unique(as.vector(CEnergy$BUILDING_SUBTYPE)), decreasing = FALSE)
         Buildingsubtype <- append(Buildingsubtype, "All", 0)
-        selectizeInput("Buildingsubtype", "Building Sub-Type:", Buildingsubtype)
+        selectizeInput("Buildingsubtype", "Building Sub-Type:", Buildingsubtype, multiple = T)
     })
     
     output$Avgstories <- renderUI({
@@ -259,7 +259,7 @@ server <- function(input, output) {
                     , step = 0.5 )
     })
     
-    energy_subset <- reactive({
+    energy_subset <- eventReactive(eventExpr = input$submit, ({
         req(input$Areaname)
         req(input$Censusblock)
         req(input$Buildingtype)
@@ -322,12 +322,14 @@ server <- function(input, output) {
             #%>% mutate(TotalConsumption = sum(TOTAL.KWH)
             #           , TotalTherms = sum(TOTAL.THERMS)
             #           , EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT))
-    })
+    }))
     
     plot1df <- reactive({
         energy_subset() %>% 
         group_by(input$xplot1) %>% 
-        mutate(TotalConsumption = sum(TOTAL.KWH)) 
+        mutate(TotalConsumption = sum(TOTAL.KWH)) %>%
+            unique() %>%
+            arrange(input$xplot1)
     })
     
     plot2df <- reactive({
