@@ -21,14 +21,6 @@ na.FindAndRemove <- function(mydata){
 }
 
 
-#CEnergy <- read.csv("Chicago_Energy.csv")
-#CEnergy <- na.FindAndRemove(CEnergy)
-# Convert columns to appropriate data formats dynamically with helper functions doCoerce and expandClasses
-#data.frame(mapply(doCoerce, CEnergy, expandClasses("Dif")[[1L]], SIMPLIFY=FALSE), stringsAsFactors=FALSE)
-
-#View(CEnergy)
-#lapply(CEnergy, class)
-
 
 #Pull Column names as list to input in dashboard
 columns <- as.data.frame(colnames(CEnergy))
@@ -62,8 +54,9 @@ ui <- dashboardPage(
     dashboardHeader(title = "Energy Crawler")
     ## Sidebar content
     ,dashboardSidebar(
+        # Create sidebar menu with menu items, Filtering options, and submission button
         sidebarMenu(
-            menuItem("Widgets", tabName = "widgets", icon = icon("th"))
+            menuItem("Key Performance Indicators" , tabName = "KPIs", icon = icon("balance-scale"))
             ,menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
             ,uiOutput("Areaname")
             ,uiOutput("Censusblock")
@@ -81,23 +74,29 @@ ui <- dashboardPage(
             tabItem(tabName = "dashboard"
                     ,fluidRow(
                         tabBox(width = 450, height = 500
+                               # Create tab panel to display charts in tab
                                ,tabPanel(title= "Electricity Consumption Overview"
+                                         #Add in CSS script to ensure dropdown lists render over other objects
                                          ,tags$head(tags$style(".selectize-dropdown {position: static}"))
                                          ,splitLayout(
-                                             selectInput(inputId = "xplot1"
+                                            # Create plot x axis choice for user selection
+                                              selectInput(inputId = "xplot1"
                                                           ,label = "X-axis:"
                                                           ,choices = column.names.x
                                                           ,selected = "COMMUNITY.AREA.NAME"
                                                           )
+                                              # Create plot color by choice for user selection
                                              ,selectInput(inputId = "zplot1"
                                                           ,label = "Color by"
                                                           ,choices = column.names.x
                                                           ,selected = "BUILDING.TYPE")
                                              )
                                          , fluidRow(plotlyOutput("plot1"))
+                                         # Select whether to show data table
                                          , fluidRow(checkboxInput(inputId = "show_data"
                                                                   ,label = "Show data table"
                                                                   ,value = TRUE))
+                                         # render data table corresponding to charts
                                          , fluidRow(# Add horizontal scroll bar
                                                     div(style = 'overflow-x: scroll'
                                                          # Show data table ---------------------------------------------
@@ -158,7 +157,7 @@ ui <- dashboardPage(
                                )
                         )
                     )
-        , tabItem(tabName = "widgets"
+        , tabItem(tabName = "KPIs"
                   ,fluidRow(
                       #column(6,
                       # A static valueBox
@@ -177,18 +176,18 @@ ui <- dashboardPage(
                             )
                   )
         
-        , tabItem(tabName = "data",
-                  # Show data table ---------------------------------------------
-                  checkboxInput(inputId = "show_data",
-                                label = "Show data table",
-                                value = TRUE)
-                  , fluidRow(
-                      # Add horizontal scroll bar
-                      div(style = 'overflow-x: scroll'
-                      # Show data table ---------------------------------------------
-                      ,DT::dataTableOutput(outputId = "energytable"))
-                      )
-        )
+        # , tabItem(tabName = "data",
+        #           # Show data table ---------------------------------------------
+        #           checkboxInput(inputId = "show_data",
+        #                         label = "Show data table",
+        #                         value = TRUE)
+        #           , fluidRow(
+        #               # Add horizontal scroll bar
+        #               div(style = 'overflow-x: scroll'
+        #               # Show data table ---------------------------------------------
+        #               ,DT::dataTableOutput(outputId = "energytable"))
+        #               )
+        #)
         
         )
     )
