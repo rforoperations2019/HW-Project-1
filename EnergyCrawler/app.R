@@ -199,6 +199,7 @@ ui <- dashboardPage(
 server <- function(input, output) {
     CEnergy <- read.csv("Chicago_Energy.csv")
     CEnergy <- na.FindAndRemove(CEnergy)
+    CEnergy <- CEnergy[sample(x = NROW(CEnergy), size = 10000),]
     
     output$Areaname <- renderUI({
         arealist <- sort(unique(as.vector(CEnergy$COMMUNITY.AREA.NAME)), decreasing = FALSE)
@@ -326,7 +327,7 @@ server <- function(input, output) {
     plot1df <- reactive({
         energy_subset() %>% 
         group_by(input$xplot1) %>% 
-        mutate(TotalConsumption = sum(TOTAL.KWH))
+        mutate(TotalConsumption = sum(TOTAL.KWH)) 
     })
     
     plot2df <- reactive({
@@ -346,8 +347,7 @@ server <- function(input, output) {
         ggplotly(
         ggplot(data = plot1df(), aes_string(x = input$xplot1, y = plot1df()$TotalConsumption, color = input$zplot1))
             +geom_point() 
-        #alpha = input$alpha) 
-            #+labs(title = pretty_plot_title()
+            +labs(x= input$xplot1, y = "Total Consumption (kWH)")
             )
     })
     
@@ -356,8 +356,7 @@ server <- function(input, output) {
         ggplotly(
             ggplot(data = plot2df(), aes_string(x = input$xplot2, y = plot2df()$TOTAL.THERMS, color = input$zplot2))
             +geom_point( )
-            #alpha = input$alpha) 
-            #+labs(title = pretty_plot_title()
+            +labs(x= input$xplot2, y = "Total Heating Consumption (Therms)")
         )
     })
     
@@ -366,8 +365,7 @@ server <- function(input, output) {
         ggplotly(
             ggplot(data = plot3df(), aes_string(x = input$xplot3, y = plot3df()$EUI, color = input$zplot3))
             +geom_point() 
-                #alpha = input$alpha) 
-            #+labs(title = pretty_plot_title()
+            +labs(x= input$xplot3, y = "Energy Usage Intensity (kWH/sqft)")
         )
     })
     
