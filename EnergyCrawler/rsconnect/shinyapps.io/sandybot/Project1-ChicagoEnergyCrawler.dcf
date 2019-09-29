@@ -5,8 +5,8 @@ account: sandybot
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1259415
-bundleId: 2452583
+bundleId: 2452590
 url: https://sandybot.shinyapps.io/Project1-ChicagoEnergyCrawler/
-when: 1569763213.05695
+when: 1569763486.87018
 asMultiple: FALSE
 asStatic: FALSE

@@ -1,4 +1,7 @@
 ## app.R ##
+require('devtools')
+devtools::install_github('rstudio/shinyapps')
+library(rsconnect)
 library(shiny)
 library(shinydashboard)
 library(plotly)
@@ -8,6 +11,8 @@ library(tidyr)
 library(ECharts2Shiny)
 library(shinyalert)
 library(shinycssloaders)
+
+CEnergy <- read.csv("Chicago_Energy.csv")
 
 # Clean data script by removing incomplete reords
 na.FindAndRemove <- function(mydata){
