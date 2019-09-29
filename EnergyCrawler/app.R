@@ -1,6 +1,6 @@
 ## app.R ##
-require('devtools')
-devtools::install_github('rstudio/shinyapps')
+library(devtools)
+library(usethis)
 library(rsconnect)
 library(shiny)
 library(shinydashboard)
