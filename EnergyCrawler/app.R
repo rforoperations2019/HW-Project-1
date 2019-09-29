@@ -5,6 +5,7 @@ library(ggplot2)
 library(DT)
 library(tidyr)
 library(ECharts2Shiny)
+library(shinyalert)
 
 # Clean data script by removing incomplete reords
 na.FindAndRemove <- function(mydata){
@@ -50,7 +51,8 @@ column.names.y <- as(column.names.y, "list")
 options(shiny.maxRequestSize = 500*1024^2)
 
 
-ui <- dashboardPage(
+ui <-dashboardPage(
+    #fluidPage(useShinyalert())
     dashboardHeader(title = "Energy Crawler")
     ## Sidebar content
     ,dashboardSidebar(
@@ -158,36 +160,18 @@ ui <- dashboardPage(
                         )
                     )
         , tabItem(tabName = "KPIs"
-                  ,fluidRow(
+                  ,fluidRow(textOutput("text1"))
+                  ,fluidRow(align = "center"
                       #column(6,
                       # A static valueBox
                       #adjust height of value boxes for presentation
-                      tags$head(tags$style(HTML(".small-box {height: 200px}")))
+                      ,tags$head(tags$style(HTML(".small-box {height: 300px}")))
                       ,valueBoxOutput("electricconsumption")
                       # Dynamic valueBoxes
                       ,valueBoxOutput("progressBox")
                       ,valueBoxOutput("approvalBox")
                       )
-                  ,fluidRow(align = "center"
-                            # We MUST load the ECharts javascript library in advance
-                            ,loadEChartsLibrary()
-                            ,tags$div(id="test", style="width:70%;height:500px;")
-                            ,deliverChart(div_id = "test")
-                            )
                   )
-        
-        # , tabItem(tabName = "data",
-        #           # Show data table ---------------------------------------------
-        #           checkboxInput(inputId = "show_data",
-        #                         label = "Show data table",
-        #                         value = TRUE)
-        #           , fluidRow(
-        #               # Add horizontal scroll bar
-        #               div(style = 'overflow-x: scroll'
-        #               # Show data table ---------------------------------------------
-        #               ,DT::dataTableOutput(outputId = "energytable"))
-        #               )
-        #)
         
         )
     )
@@ -196,9 +180,25 @@ ui <- dashboardPage(
 
 
 server <- function(input, output) {
+
+    # the modal dialog where the user can enter the query details.
+    query_modal <- modalDialog(
+        title = "Welcome to the Chicago Energy Crawler App"
+        ,"To get started please select filter options on the left panel and click submit. Users can then navigate between KPIs and the Dashboard for analysis.",
+        #selectInput('input_query','Select # cyl:',unique(mtcars$cyl)),
+        easyClose = T,
+        fade = T,
+        footer = modalButton("Get Started")
+    )
+    
+    # Show the model on start up ...
+    showModal(query_modal)
+        
+    
     CEnergy <- read.csv("Chicago_Energy.csv")
     CEnergy <- na.FindAndRemove(CEnergy)
-    CEnergy <- CEnergy[sample(x = NROW(CEnergy), size = 10000),]
+    # Sample dataset for presentation and performance benefits
+    CEnergy <- CEnergy[sample(x = NROW(CEnergy), size = 1000),]
     
     output$Areaname <- renderUI({
         arealist <- sort(unique(as.vector(CEnergy$COMMUNITY.AREA.NAME)), decreasing = FALSE)
@@ -317,56 +317,69 @@ server <- function(input, output) {
             filter_(filt4) %>%
             filter_(filt5) %>%
             filter_(filt6) %>%
-            filter_(filt7)  
-            #%>% mutate(TotalConsumption = sum(TOTAL.KWH)
-            #            , TotalTherms = sum(TOTAL.THERMS)
-            #            , EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT))
+            filter_(filt7)
+            # mutate(TotalConsumption = sum(TOTAL.KWH)
+            #             , TotalTherms = sum(TOTAL.THERMS)
+            #             , EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT)
+            #            )
     }))
     
-    plot1df <- reactive({
-        energy_subset() %>% 
-        group_by(input$xplot1) %>% 
-        mutate(TotalConsumption = sum(TOTAL.KWH))
-    })
     
-    plot2df <- reactive({
-        energy_subset() %>% 
-            group_by(input$xplot2) %>% 
-            mutate(TotalTherms = sum(TOTAL.THERMS))
-    })
+    # I tried really hard here to have a reactive summarisation of data to the reactively filtered data
+    # I could not however figure out how to get R to reference the data represented by the x-axis selection rather than the name of the x-axis
+    # plot1df <- reactive({
+    #     energy_subset() %>%
+    #     group_by(input$xplot1) %>%
+    #     summarise(EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT))
+    # })
+    # 
+    # plot2df <- reactive({
+    #     energy_subset() %>% 
+    #         group_by(input$xplot2) %>% 
+    #         summarise(TotalTherms = sum(TOTAL.THERMS))
+    # })
+    # 
+    # plot3df <- reactive({
+    #     energy_subset() %>% 
+    #         group_by(input$xplot3) %>% 
+    #         summarise(EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT)) 
+    # })
     
-    plot3df <- reactive({
-        energy_subset() %>% 
-            group_by(input$xplot3) %>% 
-            mutate(EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT))
-    })
-    
-    # Create scatterplot object the plotOutput function is expecting --
+    #Debugging script
+    #print(class(plot1df))
+    #print(class(energy_subset))
+    #output$text1 <- renderText(print(plot1df()))
+        
+    # Create scatterplot object for energy usage 
     output$plot1 <- renderPlotly({
         ggplotly(
-        ggplot(data = plot1df(), aes_string(x = input$xplot1, y = plot1df()$TotalConsumption, color = input$zplot1))
-            +geom_point() 
-            +labs(x= input$xplot1, y = "Total Consumption (kWH)")
+            ggplot(data = energy_subset(), aes_string(x = input$xplot1, y = energy_subset()$TOTAL.KWH/1000000, color = input$zplot1))
+            +geom_area()
+            +labs(x= input$xplot1, y = "Total Consumption (GWH)")
+            +theme(axis.text.x = element_text(angle = 90))
             )
     })
     
     # Create scatterplot object the plotOutput function is expecting --
     output$plot2 <- renderPlotly({
         ggplotly(
-            ggplot(data = plot2df(), aes_string(x = input$xplot2, y = plot2df()$TOTAL.THERMS, color = input$zplot2))
+            ggplot(data = energy_subset(), aes_string(x = input$xplot2, y = energy_subset()$TOTAL.THERMS/1000, color = input$zplot2))
             +geom_point( )
-            +labs(x= input$xplot2, y = "Total Heating Consumption (Therms)")
+            +labs(x= input$xplot2, y = "Total Heating Consumption (MTherms)")
+            +theme(axis.text.x = element_text(angle = 90))
         )
     })
     
     # Create scatterplot object the plotOutput function is expecting --
     output$plot3 <- renderPlotly({
         ggplotly(
-            ggplot(data = plot3df(), aes_string(x = input$xplot3, y = plot3df()$EUI, color = input$zplot3))
-            +geom_point() 
+            ggplot(data = energy_subset(), aes_string(x = input$xplot3, y = energy_subset()$TOTAL.KWH/energy_subset()$KWH.TOTAL.SQFT, color = input$zplot3))
+            +geom_boxplot() 
             +labs(x= input$xplot3, y = "Energy Usage Intensity (kWH/sqft)")
+            +theme(axis.text.x = element_text(angle = 90))
         )
     })
+    
     
     output$progressBox <- renderValueBox({
         valueBox(
@@ -376,19 +389,16 @@ server <- function(input, output) {
     })
     
     output$approvalBox <- renderValueBox({
-        valueBox(sum(energy_subset()$TOTAL.THERMS), "Thermal Consumption (Therms)", icon = icon("fire")
-                 ,color = "yellow"
+        valueBox(round(sum(energy_subset()$TOTAL.THERMS)/1000, 2), "Thermal Consumption (MTherms)", icon = icon("fire")
+                 ,color = "red"
         )
     })
     
     output$electricconsumption <- renderValueBox({
-        valueBox(sum(energy_subset()$TOTAL.KWH), "Electric Consumption (kWH)", icon = icon("bolt")
+        valueBox(round(sum(energy_subset()$TOTAL.KWH)/1000000, 2), "Electric Consumption (GWH)", icon = icon("bolt")
                  ,color = "yellow"
         )
     })
-    
-    # Call functions from ECharts2Shiny to render charts
-    renderGauge(div_id = "test",rate = 99, gauge_name = "Energy Usage Intensity", animation = T, show.tools = F)
     
     # Print data table if checked -------------------------------------
     output$energytable1 <- DT::renderDataTable(
