@@ -1,0 +1,12 @@
+name: Project1-EnergyCrawler
+title: Project1-EnergyCrawler
+username:
+account: sandybot
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1259439
+bundleId: 2452617
+url: https://sandybot.shinyapps.io/Project1-EnergyCrawler/
+when: 1569764562.56399
+asMultiple: FALSE
+asStatic: FALSE
