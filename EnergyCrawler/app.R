@@ -6,6 +6,7 @@ library(DT)
 library(tidyr)
 library(ECharts2Shiny)
 library(shinyalert)
+library(shinycssloaders)
 
 # Clean data script by removing incomplete reords
 na.FindAndRemove <- function(mydata){
@@ -93,7 +94,7 @@ ui <-dashboardPage(
                                                           ,choices = column.names.x
                                                           ,selected = "BUILDING.TYPE")
                                              )
-                                         , fluidRow(plotlyOutput("plot1"))
+                                         , fluidRow(plotlyOutput("plot1") %>% withSpinner(color="#0dc5c1"))
                                          # Select whether to show data table
                                          , fluidRow(checkboxInput(inputId = "show_data"
                                                                   ,label = "Show data table"
@@ -102,7 +103,7 @@ ui <-dashboardPage(
                                          , fluidRow(# Add horizontal scroll bar
                                                     div(style = 'overflow-x: scroll'
                                                          # Show data table ---------------------------------------------
-                                                         ,DT::dataTableOutput(outputId = "energytable1")
+                                                         ,DT::dataTableOutput(outputId = "energytable1") %>% withSpinner(color="#0dc5c1")
                                                          )
                                                     )
                                          )
@@ -119,14 +120,14 @@ ui <-dashboardPage(
                                                           ,choices = column.names.x
                                                           ,selected = "BUILDING.TYPE")
                                          )
-                                         , fluidRow(plotlyOutput("plot2"))
+                                         , fluidRow(plotlyOutput("plot2") %>% withSpinner(color="#0dc5c1"))
                                          , fluidRow(checkboxInput(inputId = "show_data"
                                                                   ,label = "Show data table"
                                                                   ,value = TRUE))
                                          , fluidRow(# Add horizontal scroll bar
                                              div(style = 'overflow-x: scroll'
                                                  # Show data table ---------------------------------------------
-                                                 ,DT::dataTableOutput(outputId = "energytable2")
+                                                 ,DT::dataTableOutput(outputId = "energytable2") %>% withSpinner(color="#0dc5c1")
                                              )
                                          )
                                          
@@ -144,14 +145,14 @@ ui <-dashboardPage(
                                                           ,choices = column.names.x
                                                           ,selected = "BUILDING.TYPE")
                                          )
-                                         , fluidRow(plotlyOutput("plot3"))
+                                         , fluidRow(plotlyOutput("plot3") %>% withSpinner(color="#0dc5c1"))
                                          , fluidRow(checkboxInput(inputId = "show_data"
                                                                   ,label = "Show data table"
                                                                   ,value = TRUE))
                                          , fluidRow(# Add horizontal scroll bar
                                              div(style = 'overflow-x: scroll'
                                                  # Show data table ---------------------------------------------
-                                                 ,DT::dataTableOutput(outputId = "energytable3")
+                                                 ,DT::dataTableOutput(outputId = "energytable3") %>% withSpinner(color="#0dc5c1")
                                              )
                                          )
                                          
@@ -318,11 +319,8 @@ server <- function(input, output) {
             filter_(filt5) %>%
             filter_(filt6) %>%
             filter_(filt7)
-            # mutate(TotalConsumption = sum(TOTAL.KWH)
-            #             , TotalTherms = sum(TOTAL.THERMS)
-            #             , EUI = mean(TOTAL.KWH/KWH.TOTAL.SQFT)
-            #            )
     }))
+    
     
     
     # I tried really hard here to have a reactive summarisation of data to the reactively filtered data
@@ -353,9 +351,9 @@ server <- function(input, output) {
     # Create scatterplot object for energy usage 
     output$plot1 <- renderPlotly({
         ggplotly(
-            ggplot(data = energy_subset(), aes_string(x = input$xplot1, y = energy_subset()$TOTAL.KWH/1000000, color = input$zplot1))
+            ggplot(data = energy_subset(), aes_string(x = input$xplot1, y = energy_subset()$TOTAL.KWH/1000, color = input$zplot1))
             +geom_area()
-            +labs(x= input$xplot1, y = "Total Consumption (GWH)")
+            +labs(x= input$xplot1, y = "Total Consumption (MWH)")
             +theme(axis.text.x = element_text(angle = 90))
             )
     })
